@@ -1,0 +1,65 @@
+name: Tests
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  KNOWN_TEST_SECRET: Kuwan
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        version: [0.1.2, 0.1.5]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup SLV
+      uses: ./
+      with:
+        version: ${{ matrix.version }}
+
+    - name: Capture SLV Version Installed
+      run: |
+        echo "SLV_VERSION_INSTALLED=$(slv --version | grep "SLV Version" | awk '{print $4}')" >> $GITHUB_ENV
+
+    - name: Verify SLV Version
+      shell: python
+      env:
+        SLV_VERSION_EXPECTED: ${{ matrix.version }}
+      run: |
+        import sys, os
+        sys.exit(
+            int(not os.environ["SLV_VERSION_EXPECTED"] in os.environ["SLV_VERSION_INSTALLED"])
+        )
+
+    - name: Add a known secret to existing vault
+      run: |
+        slv vault put -v pets.slv.yml --name AWESOME_CAT --secret "$KNOWN_TEST_SECRET"
+        cat pets.slv.yml
+
+    - name: Load SLV Secrets
+      uses: ./
+      with:
+        vault: pets.slv.yml
+        env-secret-key: ${{ secrets.SLV_ENV_SECRET_KEY }}
+        prefix: "MY_"
+
+    - name: Verify SLV Secrets
+      shell: python
+      run: |
+        import sys, os
+        sys.exit(
+            int(not os.environ["MY_AWESOME_CAT"] in os.environ["KNOWN_TEST_SECRET"])
+        )
