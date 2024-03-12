@@ -21,6 +21,7 @@ if (token) {
 
 const owner = 'savesecrets';
 const repo = 'slv-release';
+const assetName = 'slv';
 
 async function findInstalledVersion() {
   const options = {
@@ -104,7 +105,7 @@ async function getDownloadUrlForVersion(version) {
       core.setFailed('No assets found in the release version ' + version);
     }
     for (let i = 0; i < assets.length; i++) {
-      if (assets[i].name.includes(repo) && 
+      if (assets[i].name.includes(assetName) && 
           assets[i].name.includes(mapOS(platform)) && 
           assets[i].name.includes(mapArch(os.arch())) && 
           assets[i].name.includes('.zip')) {
